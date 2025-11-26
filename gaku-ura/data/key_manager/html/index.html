@@ -1,0 +1,64 @@
+<h1>HAMKEY</h1>
+<p>部室などの鍵の状況。</p>
+
+<!-- 非同期処理(javascriptを使ってリロードしなくても随時更新される機能)を考慮する -->
+<table>
+	<thead>
+		<tr>
+			<th>場所</th>
+			<th>状態</th>
+			<th>備考</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>部室</td>
+			<td id="my_room">{MY_ROOM}</td>
+			<td id="my_room_else">{MY_ROOM_ELSE}</td>
+		</tr>
+		<tr>
+			<td>予約</td>
+			<td id="book_room">{BOOK_ROOM}</td>
+			<td id="book_room_else">{BOOK_ROOM_ELSE}</td>
+		</tr>
+		<tr>
+			<td>その他</td>
+			<td colspan="2" id="other">{OTHER}</td>
+		</tr>
+	</tbody>
+</table>
+
+
+<!-- 部員専用の操作 -->
+<admin>
+<p>参考: <a href="/?Page=key">鍵の借り方</a></p>
+	<form id="form" action="" method="POST">
+		<input type="hidden" name="session_token" value="{SESSION_TOKEN}">
+		{ERROR}
+		<h2>操作する対象</h2>
+		<p>
+			<label>操作種目:
+				<select name="action">
+					<option value="blank">選択してください</option>
+					<option value="my_room_key">部室の鍵</option>
+					<option value="my_room_door">部室の扉</option>
+					<option value="book_room">部屋を予約</option>
+					<option value="book_room_videokey">ビデオラック鍵</option>
+					<option value="other">その他の操作</option>
+					<option value="reset">リセット(初期化)</option>
+				</select>
+			</label>
+		</p>
+		<h2>内容</h2>
+		<p>
+			<label><input type="radio" name="on_off" value="on">借りた・開けた・予約した</label>
+			<label><input type="radio" name="on_off" value="off">返した・閉めた</label>
+			<label><input type="radio" name="on_off" value="null" checked>そういうことじゃない</label>
+		</p>
+		<p><label>部屋番号:<input type="text" name="book_room_name" placeholder="A107"></label></p>
+		<p>追加コメント(任意):<br><textarea name="comment" rows="5"></textarea></p>
+		<p><button type="submit" name="submit" value="decide">操作を確定する</button></p>
+		<p>ログイン中: {LOGIN_NAME}さん</p>
+	</form>
+</admin>
+<p>操作盤が表示されない場合は、<a href="/users/">ログイン</a>してください。</p>
