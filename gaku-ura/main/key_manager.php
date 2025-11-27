@@ -49,11 +49,11 @@ function main():int{
 		'ERROR'=>''];
 
 	/* フォーム送信 */
-	if (list_isset($_POST,['session_token','action','on_off','book_room_name','comment'])
+	if (list_isset($_POST,['submit','session_token','action','on_off','book_room_name','comment'])
 	&& $conf->check_csrf_token('key_manager',$_POST['session_token'],true)
 	&& $login_data['result']
 	&& in_array($_POST['on_off'],['on','off','null'])
-	&& in_array($_POST['action'],['my_room_key','my_room_door','book_room','book_room_videokey','other','reset'],true)){
+	&& in_array($_POST['action'],['blank','my_room_key','my_room_door','book_room','book_room_videokey','other','reset'],true)){
 		$conf->file_lock('key_manager');
 		if ($_POST['action']!=='other'&&$_POST['action']!=='reset' && $_POST['on_off']==='null'){
 			$replace['ERROR'] = '<p class="error">内容が選択されていません。</p>';
@@ -119,6 +119,10 @@ function main():int{
 				}
 				$message .= '初期化し';
 				break;
+
+				case 'blank':
+				$replace['ERROR'] = '<p class="error">操作を選択してください。</p>';
+				break;
 			}
 		}
 		if ($replace['ERROR'] === ''){
@@ -147,12 +151,26 @@ function main():int{
 				$response = curl_exec($ch);
 				curl_close($ch);
 			}
-			header('Location:./');
-			exit;
+			if ($_POST['submit'] !== 'javascript'){
+				header('Location:./');
+				exit;
+			}
 		} else {
 			$conf->file_unlock('key_manager');
 		}
 	}
+	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=3){
+		$replace['LOGIN_NAME'] = $login_data['user_data']['name'];
+		$replace['SESSION_TOKEN'] = $conf->set_csrf_token('key_manager');
+	}
+
+	/* 非同期通信 */
+	if ((isset($_POST['reload'])&&$_POST['reload']==='json') || (isset($_POST['submit'])&&$_POST['submit']==='javascript')){
+		header('Content-Type:application/json;charset=UTF-8');
+		echo json_encode($replace, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		return 0;
+	}
+
 	$html = file_get_contents($html_file);
 	remove_comment_rows($html, '<!--', '-->');
 	if (!$login_data['result'] || (int)$login_data['user_data']['admin']<3){
@@ -160,8 +178,6 @@ function main():int{
 	} else {
 		$html = str_replace('<admin>', '', $html);
 		$html = str_replace('</admin>', '', $html);
-		$replace['LOGIN_NAME'] = $login_data['user_data']['name'];
-		$replace['SESSION_TOKEN'] = $conf->set_csrf_token('key_manager');
 	}
 	foreach ($replace as $k => $v){
 		$html = str_replace('{'.$k.'}', $v, $html);
