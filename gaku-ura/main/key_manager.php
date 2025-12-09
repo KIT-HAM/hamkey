@@ -59,13 +59,14 @@ function main():int{
 			$replace['ERROR'] = '<p class="error">内容が選択されていません。</p>';
 		} else {
 			$message = $login_data['user_data']['name'].'さんが';
+			$date = date('[Y年m月d日H時i分] ');
 			switch ($_POST['action']){
 				case 'my_room_key':
 				if ($_POST['on_off'] === 'on'){
-					$key_status[1] = '(鍵は借りた)';
+					$key_status[1] = $date.'(鍵は借りた)';
 					$message .= '鍵は借り';
 				} else {
-					$key_status[1] = '(鍵は返した)';
+					$key_status[1] = $date.'(鍵は返した)';
 					$message .= '鍵は返し';
 				}
 				break;
@@ -73,10 +74,10 @@ function main():int{
 				case 'my_room_door':
 				if ($_POST['on_off'] === 'on'){
 					$key_status[0] = 1;
-					$message .= '部屋を開け';
+					$message .= $date.'部屋を開け';
 				} else {
 					$key_status[0] = 0;
-					$message .= '部屋を閉め';
+					$message .= $date.'部屋を閉め';
 				}
 				break;
 
@@ -96,10 +97,10 @@ function main():int{
 				case 'book_room_videokey':
 				$room_name = str_replace(',', '', GakuUra::h(h($_POST['book_room_name'])));
 				if ($_POST['on_off'] === 'on'){
-					$key_status[3] = '(ビデオラックの鍵は借りた)';
+					$key_status[3] = $date.'(ビデオラックの鍵は借りた)';
 					$message .= 'ビデオラックの鍵は借り';
 				} else {
-					$key_status[3] = '(ビデオラックの鍵は返した)';
+					$key_status[3] = $date.'(ビデオラックの鍵は返した)';
 					$message .= 'ビデオラックの鍵は返し';
 					if (not_empty($room_name)){
 						$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
@@ -108,7 +109,7 @@ function main():int{
 				break;
 
 				case 'other':
-				$key_status[4] = h($_POST['comment']);
+				$key_status[4] = $date.nl2br(h($_POST['comment']), false);
 				$message .= 'メッセージを送信し';
 				break;
 
@@ -129,7 +130,7 @@ function main():int{
 			for ($i = 0; $i < 5; ++$i){
 				$key_status[$i] = GakuUraUser::h($key_status[$i]);
 			}
-			file_put_contents($key_status_file, implode("\t",$key_status)."\n", LOCK_EX);
+			file_put_contents($key_status_file, row(implode("\t",$key_status))."\n", LOCK_EX);
 			$conf->file_unlock('key_manager');
 
 			//discodeで周知
