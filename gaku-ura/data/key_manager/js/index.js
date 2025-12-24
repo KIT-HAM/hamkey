@@ -72,7 +72,7 @@ async function decide_change(e){
 	}
 }
 
-setInterval(reload_status, 1000);
+setInterval(reload_status, 3000);
 
 //権限がある場合のみ
 if ($ID("form")){
