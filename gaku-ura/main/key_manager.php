@@ -22,6 +22,7 @@ function main():int{
 	*/
 	$my_room = ['0'=>'施錠', '1'=>'開錠'];
 	$key_status_file = $data_dir.'/key_status.tsv';
+	$key_log_file = $data_dir.'/key_status_log.txt';
 	$key_status = [];
 	if (is_file($key_status_file)){
 		$key_status = explode("\t", get($key_status_file, 1));
@@ -130,8 +131,11 @@ function main():int{
 			for ($i = 0; $i < 5; ++$i){
 				$key_status[$i] = GakuUraUser::h($key_status[$i]);
 			}
-			file_put_contents($key_status_file, row(implode("\t",$key_status))."\n", LOCK_EX);
+			$k = row(implode("\t",$key_status))."\n";
+			file_put_contents($key_status_file, $k, LOCK_EX);
 			$conf->file_unlock('key_manager');
+			
+			file_put_contents($key_log_file, $k, FILE_APPEND|LOCK_EX);
 
 			//discodeで周知
 			if (isset($config['discode_url']) && not_empty($config['discode_url'])){
@@ -139,10 +143,16 @@ function main():int{
 				if (not_empty($_POST['comment'])){
 					$message .= "\n".'コメント「'.h($_POST['comment']).'」';
 				}
+				$pl = [];
+				foreach (explode('|',($config['discode_choose_profile_list']??'')) as $p){
+					$pl[] = explode(',', subrpos('[',']',$p));
+				}
+				if(!$pl) $pl = ['あまさん','amasan.png'];
+				$i = array_rand($pl);
 				$discode_data = [
-					'username'=>'あまさん',
+					'username'=>$pl[$i][0],
 					'content'=>$message,
-					'avatar_url'=>(isset($config['discode_icon'])?$config['discode_icon']:'')];
+					'avatar_url'=>$conf->domain.'/images/'.$pl[$i][1]];
 				$discode_json = json_encode($discode_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 				$ch = curl_init($config['discode_url']);
 				curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
