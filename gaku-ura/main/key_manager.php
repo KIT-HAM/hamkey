@@ -1,6 +1,7 @@
 <?php
 require __DIR__ .'/../conf/conf.php';
 require __DIR__ .'/../conf/users.php';
+#TODO: 過去ログを閲覧できるようにする
 /*
  * ★主な機能★
  * 鍵の貸し借り状態を管理
@@ -33,13 +34,8 @@ function main():int{
 		}
 	}
 	$config = read_conf($data_dir.'/key_manager.conf');
-	$html_file = $data_dir.'/html/index.html';
-	$css_file = $data_dir.'/css';
-	$js_file = $data_dir.'/js';
-	if (!is_file($html_file)){
-		$conf->not_found();
-	}
 	$replace = [
+		'ADMIN_ONLY'=>'<p><a href="/users/login/">ログインしていません。</a></p>',
 		'MY_ROOM'=>$my_room[(string)$key_status[0]],
 		'MY_ROOM_ELSE'=>$key_status[1],
 		'BOOK_ROOM'=>$key_status[2],
@@ -48,8 +44,7 @@ function main():int{
 		'SESSION_TOKEN'=>'',
 		'LOGIN_NAME'=>'',
 		'ERROR'=>''];
-
-	/* フォーム送信 */
+	#フォーム送信
 	if (list_isset($_POST,['submit','session_token','action','on_off','book_room_name','comment'])
 	&& $conf->check_csrf_token('key_manager',$_POST['session_token'],true)
 	&& $login_data['result']
@@ -61,8 +56,8 @@ function main():int{
 		} else {
 			$message = $login_data['user_data']['name'].'さんが';
 			$date = date('[Y年m月d日H時i分] ');
-			switch ($_POST['action']){
-				case 'my_room_key':
+			$act = $_POST['action'];
+			if ($act === 'my_room_key'){
 				if ($_POST['on_off'] === 'on'){
 					$key_status[1] = $date.'(鍵は借りた)';
 					$message .= '鍵は借り';
@@ -70,9 +65,7 @@ function main():int{
 					$key_status[1] = $date.'(鍵は返した)';
 					$message .= '鍵は返し';
 				}
-				break;
-
-				case 'my_room_door':
+			} elseif ($act === 'my_room_door'){
 				if ($_POST['on_off'] === 'on'){
 					$key_status[0] = 1;
 					$message .= $date.'部屋を開け';
@@ -80,9 +73,7 @@ function main():int{
 					$key_status[0] = 0;
 					$message .= $date.'部屋を閉め';
 				}
-				break;
-
-				case 'book_room':
+			} elseif ($act === 'book_room'){
 				$room_name = str_replace(',', '', GakuUra::h(h($_POST['book_room_name'])));
 				if (not_empty($room_name)){
 					$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
@@ -93,9 +84,7 @@ function main():int{
 				} else {
 					$replace['ERROR'] = '<p class="error">部屋名が入力されていません。</p>';
 				}
-				break;
-
-				case 'book_room_videokey':
+			} elseif ($act === 'book_room_videokey'){
 				$room_name = str_replace(',', '', GakuUra::h(h($_POST['book_room_name'])));
 				if ($_POST['on_off'] === 'on'){
 					$key_status[3] = $date.'(ビデオラックの鍵は借りた)';
@@ -107,42 +96,30 @@ function main():int{
 						$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
 					}
 				}
-				break;
-
-				case 'other':
+			} elseif ($act === 'other'){
 				$key_status[4] = $date.nl2br(h($_POST['comment']), false);
 				$message .= 'メッセージを送信し';
-				break;
-
-				case 'reset':
+			} elseif ($act === 'reset'){
 				if (is_file($key_status_file)){
 					unlink($key_status_file);
 					$key_status = [0,'','','',''];
 				}
 				$message .= '初期化し';
-				break;
-
-				case 'blank':
+			} else {
 				$replace['ERROR'] = '<p class="error">操作を選択してください。</p>';
-				break;
 			}
 		}
 		if ($replace['ERROR'] === ''){
-			for ($i = 0; $i < 5; ++$i){
-				$key_status[$i] = GakuUraUser::h($key_status[$i]);
-			}
+			for($i=0;$i < 5;++$i) $key_status[$i]=GakuUraUser::h($key_status[$i]);
 			$k = row(implode("\t",$key_status))."\n";
 			file_put_contents($key_status_file, $k, LOCK_EX);
 			$conf->file_unlock('key_manager');
-			
 			file_put_contents($key_log_file, $k, FILE_APPEND|LOCK_EX);
 
-			//discodeで周知
+			#discodeで周知
 			if (isset($config['discode_url']) && not_empty($config['discode_url'])){
 				$message .= 'たですぅ。';
-				if (not_empty($_POST['comment'])){
-					$message .= "\n".'コメント「'.h($_POST['comment']).'」';
-				}
+				if(not_empty($_POST['comment'])) $message.="\n".'コメント「'.h($_POST['comment']).'」';
 				$pl = [];
 				foreach (explode('|',($config['discode_choose_profile_list']??'')) as $p){
 					$pl[] = explode(',', subrpos('[',']',$p));
@@ -174,25 +151,17 @@ function main():int{
 		$replace['LOGIN_NAME'] = $login_data['user_data']['name'];
 		$replace['SESSION_TOKEN'] = $conf->set_csrf_token('key_manager');
 	}
-
-	/* 非同期通信 */
+	#非同期通信
 	if ((isset($_POST['reload'])&&$_POST['reload']==='json') || (isset($_POST['submit'])&&$_POST['submit']==='javascript')){
 		header('Content-Type:application/json;charset=UTF-8');
 		echo json_encode($replace, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		return 0;
 	}
-
-	$html = file_get_contents($html_file);
-	remove_comment_rows($html, '<!--', '-->');
-	if (!$login_data['result'] || (int)$login_data['user_data']['admin']<3){
-		remove_comment_rows($html, '<admin>', '</admin>');
-	} else {
-		$html = str_replace('<admin>', '', $html);
-		$html = str_replace('</admin>', '', $html);
+	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=3){
+		$ah = $data_dir.'/html/admin_only.html';
+		$replace['ADMIN_ONLY'] = is_file($ah)?file_get_contents($ah):'';
+		foreach($replace as $k=>$v) $replace['ADMIN_ONLY']=str_replace('{'.$k.'}',GakuUra::h($v),$replace['ADMIN_ONLY']);
 	}
-	foreach ($replace as $k => $v){
-		$html = str_replace('{'.$k.'}', $v, $html);
-	}
-	$conf->html('HAMKEY-', '鍵の状態', $html, $css_file, $js_file, true);
+	$conf->htmlf('key_manager', 'index', $replace, true);
 	return 0;
 }
