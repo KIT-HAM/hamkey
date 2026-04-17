@@ -79,6 +79,7 @@ function main():int{
 					$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
 					if ($_POST['on_off'] === 'on'){
 						$key_status[2] .= $room_name.', ';
+						$key_status[3] = h($_POST['comment']);
 						$message .= $room_name.'を予約し';
 					}
 				} else {
