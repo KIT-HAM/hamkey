@@ -79,20 +79,22 @@ function main():int{
 					$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
 					if ($_POST['on_off'] === 'on'){
 						$key_status[2] .= $room_name.', ';
-						$key_status[3] = h($_POST['comment']);
 						$message .= $room_name.'を予約し';
+					} else {
+						$message .= $room_name.'の使用を終了し';
 					}
+					$key_status[3] = h($_POST['comment']);
 				} else {
 					$replace['ERROR'] = '<p class="error">部屋名が入力されていません。</p>';
 				}
 			} elseif ($act === 'book_room_videokey'){
 				$room_name = str_replace(',', '', GakuUra::h(h($_POST['book_room_name'])));
 				if ($_POST['on_off'] === 'on'){
-					$key_status[3] = $date.'(ビデオラックの鍵は借りた)';
-					$message .= 'ビデオラックの鍵は借り';
+					$key_status[3] .= $date.'(ビデオラックの鍵は借りた)';
+					$message .= ' ビデオラックの鍵は借り';
 				} else {
-					$key_status[3] = $date.'(ビデオラックの鍵は返した)';
-					$message .= 'ビデオラックの鍵は返し';
+					$key_status[3] .= $date.'(ビデオラックの鍵は返した)';
+					$message .= ' ビデオラックの鍵は返し';
 					if (not_empty($room_name)){
 						$key_status[2] = str_replace($room_name.', ', '', $key_status[2]);
 					}
@@ -148,7 +150,7 @@ function main():int{
 			$conf->file_unlock('key_manager');
 		}
 	}
-	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=3){
+	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=1){
 		$replace['LOGIN_NAME'] = $login_data['user_data']['name'];
 		$replace['SESSION_TOKEN'] = $conf->set_csrf_token('key_manager');
 	}
@@ -158,7 +160,7 @@ function main():int{
 		echo json_encode($replace, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 		return 0;
 	}
-	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=3){
+	if ($login_data['result'] && (int)$login_data['user_data']['admin']>=1){
 		$ah = $data_dir.'/html/admin_only.html';
 		$replace['ADMIN_ONLY'] = is_file($ah)?file_get_contents($ah):'';
 		foreach($replace as $k=>$v) $replace['ADMIN_ONLY']=str_replace('{'.$k.'}',GakuUra::h($v),$replace['ADMIN_ONLY']);
